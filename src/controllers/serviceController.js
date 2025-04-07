@@ -429,6 +429,29 @@ export const getAllServices = async (req, res) => {
   }
 };
 
+export const getServicesByType = async (req, res) => {
+  const { type } = req.query;
+
+  try {
+    if (!type) {
+      return res
+        .status(400)
+        .json({ message: "Service type is required as a query parameter." });
+    }
+
+    const services = await Service.find({ serviceType: type })
+      .populate("user", "name email")
+      .populate("specificService");
+
+    res.status(200).json({
+      results: services.length,
+      data: services,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const getServiceDetails = async (req, res) => {
   try {
     const { id } = req.params; // Get service ID from URL params

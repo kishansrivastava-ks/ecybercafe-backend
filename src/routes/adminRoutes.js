@@ -8,6 +8,7 @@ import { isAdmin, protect } from "../middlewares/authMiddleware.js";
 import {
   getAllServices,
   getServiceDetails,
+  getServicesByType,
 } from "../controllers/serviceController.js";
 
 const router = express.Router();
@@ -26,6 +27,7 @@ router.patch(
 router.post("/service/:serviceId/comment", protect, isAdmin, addServiceComment);
 
 router.get("/service/all-services", protect, isAdmin, getAllServices);
+router.get("/service/by-type", protect, isAdmin, getServicesByType);
 
 router.get("/service/:id", protect, getServiceDetails);
 
