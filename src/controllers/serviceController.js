@@ -120,10 +120,15 @@ export const applyForPanCard = async (req, res) => {
         .status(400)
         .json({ message: "All fields are required for PanCard" });
     }
-    if (!req.files || !req.files.photo || !req.files.signature) {
-      return res
-        .status(400)
-        .json({ message: "Photo and signature are required for PanCard" });
+    if (
+      !req.files ||
+      !req.files.photo ||
+      !req.files.signature ||
+      !req.files.aadharFile
+    ) {
+      return res.status(400).json({
+        message: "Photo and signature and Aadhar card are required for PanCard",
+      });
     }
     const uploadDir = path.join(process.cwd(), "uploads", "pan-card");
     if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
@@ -134,10 +139,15 @@ export const applyForPanCard = async (req, res) => {
     const signatureFileName = `signature_${Date.now()}${path.extname(
       req.files.signature.name
     )}`;
+    const aadharFileName = `aadhar_${Date.now()}${path.extname(
+      req.files.aadharFile.name
+    )}`;
     const photoPath = path.join(uploadDir, photoFileName);
     const signaturePath = path.join(uploadDir, signatureFileName);
+    const aadharFilePath = path.join(uploadDir, aadharFileName);
     req.files.photo.mv(photoPath);
     req.files.signature.mv(signaturePath);
+    req.files.aadharFile.mv(aadharFilePath);
 
     const specificService = await PanCard.create({
       user: req.user.id,
@@ -149,6 +159,7 @@ export const applyForPanCard = async (req, res) => {
       address,
       photoPath: `/uploads/pan-card/${photoFileName}`,
       signaturePath: `/uploads/pan-card/${signatureFileName}`,
+      aadharFilePath: `/uploads/pan-card/${aadharFileName}`,
     });
 
     const service = await Service.create({
@@ -240,154 +251,6 @@ export const applyForJobCard = async (req, res) => {
   }
 };
 
-// export const applyForService = async (req, res) => {
-//   try {
-//     const { serviceType } = req.body;
-//     console.log(serviceType);
-
-//     if (!serviceType || !["PanCard", "RTPS"].includes(serviceType)) {
-//       return res.status(400).json({ message: "Invalid service type" });
-//     }
-
-//     let specificServiceData;
-//     let specificService;
-//     // let uploadDir = "";
-
-//     if (serviceType === "PanCard") {
-//       // Validate required fields
-//       const {
-//         fullName,
-//         dateOfBirth,
-//         fatherName,
-//         mobileNumber,
-//         aadharNumber,
-//         address,
-//       } = req.body;
-//       if (
-//         ![
-//           fullName,
-//           dateOfBirth,
-//           fatherName,
-//           mobileNumber,
-//           aadharNumber,
-//           address,
-//         ].every(Boolean)
-//       ) {
-//         return res
-//           .status(400)
-//           .json({ message: "All fields are required for PanCard" });
-//       }
-
-//       // Check for uploaded files
-//       if (!req.files || !req.files.photo || !req.files.signature) {
-//         return res
-//           .status(400)
-//           .json({ message: "Photo and signature are required for PanCard" });
-//       }
-
-//       // Generate unique filenames
-//       const photoFileName = `photo_${Date.now()}${path.extname(
-//         req.files.photo.name
-//       )}`;
-//       const signatureFileName = `signature_${Date.now()}${path.extname(
-//         req.files.signature.name
-//       )}`;
-
-//       // Define upload paths
-//       const uploadDir = path.join(process.cwd(), "uploads", "pan-card");
-//       if (!fs.existsSync(uploadDir))
-//         fs.mkdirSync(uploadDir, { recursive: true });
-
-//       // Move files to the upload directory
-//       const photoPath = path.join(uploadDir, photoFileName);
-//       const signaturePath = path.join(uploadDir, signatureFileName);
-//       req.files.photo.mv(photoPath);
-//       req.files.signature.mv(signaturePath);
-
-//       // Create PanCard entry
-//       specificServiceData = {
-//         user: req.user.id,
-//         fullName,
-//         dateOfBirth: new Date(dateOfBirth),
-//         fatherName,
-//         mobileNumber,
-//         aadharNumber,
-//         address,
-//         photoPath: `/uploads/pan-card/${photoFileName}`,
-//         signaturePath: `/uploads/pan-card/${signatureFileName}`,
-//       };
-//       specificService = await PanCard.create(specificServiceData);
-//     } else if (serviceType === "RTPS") {
-//       const { block, registrationType, registrationNumber } = req.body;
-//       if (![block, registrationType, registrationNumber].every(Boolean)) {
-//         return res
-//           .status(400)
-//           .json({ message: "All fields are required for RTPS" });
-//       }
-
-//       // Create RTPS entry
-//       specificServiceData = {
-//         user: req.user.id,
-//         block,
-//         registrationType,
-//         registrationNumber,
-//       };
-//       specificService = await Rtps.create(specificServiceData);
-//     } else if (serviceType === "JobCard") {
-//       if (!req.files || !req.files.aadharFile || !req.files.passbookFile) {
-//         return res
-//           .status(400)
-//           .json({ message: "Aadhar and Passbook files are required" });
-//       }
-
-//       // Generate unique filenames
-//       const aadharFileName = `aadhar_${Date.now()}${path.extname(
-//         req.files.aadharFile.name
-//       )}`;
-//       const passbookFileName = `passbook_${Date.now()}${path.extname(
-//         req.files.passbookFile.name
-//       )}`;
-
-//       // Define upload path
-//       const uploadDir = path.join(process.cwd(), "uploads", "job-card");
-//       if (!fs.existsSync(uploadDir))
-//         fs.mkdirSync(uploadDir, { recursive: true });
-
-//       // Move files
-//       const aadharFilePath = path.join(uploadDir, aadharFileName);
-//       const passbookFilePath = path.join(uploadDir, passbookFileName);
-//       req.files.aadharFile.mv(aadharFilePath);
-//       req.files.passbookFile.mv(passbookFilePath);
-
-//       specificService = await JobCard.create({
-//         user: req.user.id,
-//         name: req.body.name,
-//         fatherHusbandName: req.body.fatherHusbandName,
-//         aadharFilePath: `/uploads/job-card/${aadharFileName}`,
-//         passbookFilePath: `/uploads/job-card/${passbookFileName}`,
-//       });
-//     } else {
-//       return res.status(400).json({ message: "Invalid service type" });
-//     }
-
-//     // Create Service entry
-//     const service = await Service.create({
-//       user: req.user.id,
-//       serviceType,
-//       specificService: specificService._id,
-//     });
-
-//     res.status(201).json({
-//       message: `${serviceType} application submitted successfully`,
-//       service,
-//       specificService,
-//     });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: error.message });
-//   }
-// };
-
 export const getUserServices = async (req, res) => {
   try {
     // const services = await Service.find({ user: req.user.id });
@@ -396,6 +259,38 @@ export const getUserServices = async (req, res) => {
       // model: (doc) => doc.serviceType,
     });
     res.status(200).json(services);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const deleteService = async (req, res) => {
+  try {
+    const { serviceId } = req.params;
+
+    const service = await Service.findById(serviceId);
+    if (!service) {
+      return res.status(404).json({ message: "Service not found" });
+    }
+    if (service.user.toString() !== req.user.id) {
+      return res
+        .status(403)
+        .json({ message: "You do not have permission to delete this service" });
+    }
+
+    await Service.findByIdAndDelete(serviceId);
+
+    res.status(200).json({ message: "Service deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// to delete all the services of the currently logged in user
+export const deleteAllServices = async (req, res) => {
+  try {
+    await Service.deleteMany({ user: req.user.id });
+    res.status(200).json({ message: "All services deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -610,31 +505,3 @@ export const listServiceDocuments = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-// export const applyForService = async (req, res) => {
-//   try {
-//     const { serviceType, details } = req.body;
-//     const userId = req.user.id;
-//     console.log(req.user);
-
-//     let specificService;
-//     let actualServiceType;
-
-//     if (serviceType === "pan_card") {
-//       specificService = await PanCard.create({ ...details, user: userId });
-//       actualServiceType = "PanCard";
-//     } else {
-//       return res.status(400).json({ message: "Invalid service type" });
-//     }
-
-//     const service = await Service.create({
-//       user: userId,
-//       serviceType: actualServiceType,
-//       specificService: specificService._id,
-//     });
-
-//     res.status(201).json({ message: "Service application submitted", service });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };

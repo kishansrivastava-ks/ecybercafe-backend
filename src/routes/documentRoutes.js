@@ -5,6 +5,11 @@ import {
   listServiceDocuments,
 } from "../controllers/serviceController.js";
 import { protect, isAdmin } from "../middlewares/authMiddleware.js";
+import {
+  createDocument,
+  getAllDocuments,
+  getDocumentById,
+} from "../controllers/documentController.js";
 
 const router = express.Router();
 
@@ -25,5 +30,9 @@ router.get(
   protect,
   downloadServiceDocument
 );
+
+router.post("/create", createDocument);
+router.get("/:id", getDocumentById);
+router.get("/", getAllDocuments);
 
 export default router;

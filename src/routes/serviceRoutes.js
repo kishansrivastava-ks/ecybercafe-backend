@@ -9,6 +9,8 @@ import {
   applyForPanCard,
   applyForRTPS,
   applyForJobCard,
+  deleteService,
+  deleteAllServices,
 } from "../controllers/serviceController.js";
 import { protect, isAdmin } from "../middlewares/authMiddleware.js";
 
@@ -35,5 +37,8 @@ router.get(
   protect,
   downloadServiceDocument
 );
+
+router.delete("/all", protect, deleteAllServices);
+router.delete("/:serviceId", protect, deleteService);
 
 export default router;

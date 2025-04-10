@@ -9,8 +9,9 @@ const panCardSchema = new mongoose.Schema(
     mobileNumber: { type: String, required: true },
     aadharNumber: { type: String, required: true },
     address: { type: String, required: true },
-    photoPath: { type: String, required: true }, // Path to uploaded photo
-    signaturePath: { type: String, required: true }, // Path to uploaded signature
+    photoPath: { type: String, required: true },
+    signaturePath: { type: String, required: true },
+    aadharFilePath: { type: String },
     status: {
       type: String,
       enum: ["pending", "processing", "approved", "rejected"],

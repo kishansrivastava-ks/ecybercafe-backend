@@ -10,6 +10,7 @@ import adminRoutes from "./routes/adminRoutes.js";
 import serviceRoutes from "./routes/serviceRoutes.js";
 import fileUpload from "express-fileupload";
 import path from "path";
+import documentRoutes from "./routes/documentRoutes.js";
 
 const app = express();
 
@@ -26,30 +27,44 @@ app.use(
 );
 app.use(morgan("dev"));
 app.use(bodyParser.json());
+// app.use(
+//   fileUpload({
+//     createParentPath: true,
+//     limits: {
+//       fileSize: 5 * 1024 * 1024,
+//     },
+//     abortOnLimit: true,
+//   })
+// );
+
 app.use(
   fileUpload({
-    createParentPath: true,
-    limits: {
-      fileSize: 5 * 1024 * 1024, // 5MB max file size
-    },
-    abortOnLimit: true,
+    limits: { fileSize: 10 * 1024 * 1024 },
+    useTempFiles: false,
   })
 );
-// Serve static files (important for accessing uploaded files)
+
 const __dirname = path.resolve();
 app.use(
   "/uploads",
   express.static(path.join(__dirname, "uploads"), {
     setHeaders: (res, path) => {
-      res.setHeader("cross-origin-resource-policy", "cross-origin"); // Allow cross-origin requests
+      res.setHeader("cross-origin-resource-policy", "cross-origin");
     },
   })
 );
+
+// app.use("/uploads", express.static(path.join(process.cwd(), "uploads")), {
+//   setHeaders: (res, path) => {
+//     res.setHeader("cross-origin-resource-policy", "cross-origin"); // Allow cross-origin requests
+//   },
+// });
 
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/services", serviceRoutes);
+app.use("/api/document", documentRoutes);
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
