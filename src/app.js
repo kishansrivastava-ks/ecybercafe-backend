@@ -30,7 +30,11 @@ app.use(
     origin: ["https://ecybercafe.in", "https://www.ecybercafe.in"],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Access-Control-Allow-Origin",
+    ],
   })
 );
 app.use(morgan("dev"));
