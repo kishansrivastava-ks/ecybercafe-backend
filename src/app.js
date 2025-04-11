@@ -14,40 +14,37 @@ import documentRoutes from "./routes/documentRoutes.js";
 
 const app = express();
 
+const corsOptions = {
+  origin: ["https://ecybercafe.in", "https://www.ecybercafe.in"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  credentials: true,
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "Access-Control-Allow-Origin",
+  ],
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
+
 // Middleware
 app.use(helmet());
 app.use(compression());
-// Enable CORS (allow all origins)
 // app.use(
 //   cors({
-//     origin: "*",
-//     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-//     allowedHeaders: ["Content-Type", "Authorization"],
+//     origin: ["https://ecybercafe.in", "https://www.ecybercafe.in"],
+//     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+//     credentials: true,
+//     allowedHeaders: [
+//       "Content-Type",
+//       "Authorization",
+//       "Access-Control-Allow-Origin",
+//     ],
 //   })
 // );
-app.use(
-  cors({
-    origin: ["https://ecybercafe.in", "https://www.ecybercafe.in"],
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    credentials: true,
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "Access-Control-Allow-Origin",
-    ],
-  })
-);
 app.use(morgan("dev"));
 app.use(bodyParser.json());
-// app.use(
-//   fileUpload({
-//     createParentPath: true,
-//     limits: {
-//       fileSize: 5 * 1024 * 1024,
-//     },
-//     abortOnLimit: true,
-//   })
-// );
 
 app.use(
   fileUpload({
@@ -67,8 +64,6 @@ app.use(
 );
 
 // Routes
-// Add this before your routes
-app.options("*", cors());
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/services", serviceRoutes);
