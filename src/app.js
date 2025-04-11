@@ -18,10 +18,18 @@ const app = express();
 app.use(helmet());
 app.use(compression());
 // Enable CORS (allow all origins)
+// app.use(
+//   cors({
+//     origin: "*",
+//     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+//     allowedHeaders: ["Content-Type", "Authorization"],
+//   })
+// );
 app.use(
   cors({
-    origin: "*", // Change this to your frontend URL in production
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    origin: ["https://ecybercafe.in", "https://www.ecybercafe.in"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
@@ -54,13 +62,9 @@ app.use(
   })
 );
 
-// app.use("/uploads", express.static(path.join(process.cwd(), "uploads")), {
-//   setHeaders: (res, path) => {
-//     res.setHeader("cross-origin-resource-policy", "cross-origin"); // Allow cross-origin requests
-//   },
-// });
-
 // Routes
+// Add this before your routes
+app.options("*", cors());
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/services", serviceRoutes);
