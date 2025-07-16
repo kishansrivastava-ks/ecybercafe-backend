@@ -4,7 +4,6 @@ import morgan from "morgan";
 import helmet from "helmet";
 import compression from "compression";
 import bodyParser from "body-parser";
-// import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import serviceRoutes from "./routes/serviceRoutes.js";
@@ -14,35 +13,26 @@ import documentRoutes from "./routes/documentRoutes.js";
 
 const app = express();
 
-const corsOptions = {
-  origin: ["https://ecybercafe.in", "https://www.ecybercafe.in"],
-  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-  credentials: true,
-  allowedHeaders: [
-    "Content-Type",
-    "Authorization",
-    "Access-Control-Allow-Origin",
-  ],
-};
+// const corsOptions = {
+//   origin: ["https://ecybercafe.in", "https://www.ecybercafe.in"],
+//   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+//   credentials: true,
+//   allowedHeaders: [
+//     "Content-Type",
+//     "Authorization",
+//     "Access-Control-Allow-Origin",
+//   ],
+// };
 
-app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
+// app.use(cors(corsOptions));
+// app.options("*", cors(corsOptions));
+
+app.use(cors());
 
 // Middleware
 app.use(helmet());
 app.use(compression());
-// app.use(
-//   cors({
-//     origin: ["https://ecybercafe.in", "https://www.ecybercafe.in"],
-//     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-//     credentials: true,
-//     allowedHeaders: [
-//       "Content-Type",
-//       "Authorization",
-//       "Access-Control-Allow-Origin",
-//     ],
-//   })
-// );
+
 app.use(morgan("dev"));
 app.use(bodyParser.json());
 
