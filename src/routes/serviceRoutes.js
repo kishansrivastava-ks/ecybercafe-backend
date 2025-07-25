@@ -11,6 +11,7 @@ import {
   applyForJobCard,
   deleteService,
   deleteAllServices,
+  applyForITR,
 } from "../controllers/serviceController.js";
 import { protect, isAdmin } from "../middlewares/authMiddleware.js";
 
@@ -21,6 +22,8 @@ const router = express.Router();
 router.post("/apply/pan-card", protect, applyForPanCard);
 router.post("/apply/rtps", protect, applyForRTPS);
 router.post("/apply/job-card", protect, applyForJobCard);
+
+router.post("/apply/itr", protect, applyForITR);
 
 router.get("/my-services", protect, getUserServices);
 router.put("/update/:serviceId", protect, isAdmin, updateService);

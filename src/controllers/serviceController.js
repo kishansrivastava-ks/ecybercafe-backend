@@ -2,6 +2,7 @@ import Service from "../models/Service.js";
 import PanCard from "../models/PanCard.js";
 import Rtps from "../models/Rtps.js";
 import JobCard from "../models/JobCard.js";
+import ITR from "../models/ITR.js";
 
 import mime from "mime-types";
 import path from "path";
@@ -503,5 +504,85 @@ export const listServiceDocuments = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: error.message });
+  }
+};
+
+export const applyForITR = async (req, res) => {
+  try {
+    // --- Improvement: More robust validation ---
+    // 1. Validate that files were actually uploaded.
+    const { aadharFile, panCardFile, passbookFile } = req.files || {};
+    if (!aadharFile || !panCardFile || !passbookFile) {
+      return res.status(400).json({
+        message: "Aadhar, PAN card, and Passbook files are all required.",
+      });
+    }
+
+    // 2. Validate that all required text fields from the form body are present.
+    const { aadharCardNo, panCardNo, accountNo, ifscCode } = req.body;
+    if (!aadharCardNo || !panCardNo || !accountNo || !ifscCode) {
+      return res.status(400).json({ message: "All form fields are required." });
+    }
+
+    // --- Improvement: Centralized upload path and directory creation ---
+    // 3. Handle file saving in a dedicated 'itr' subfolder.
+    // This logic could be abstracted into a reusable helper function to reduce code duplication
+    // across your different service application controllers.
+    const uploadDir = path.join(process.cwd(), "uploads", "itr");
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    // Create unique filenames to prevent overwrites
+    const aadharFileName = `aadhar_${req.user.id}_${Date.now()}${path.extname(
+      aadharFile.name
+    )}`;
+    const panCardFileName = `pancard_${req.user.id}_${Date.now()}${path.extname(
+      panCardFile.name
+    )}`;
+    const passbookFileName = `passbook_${
+      req.user.id
+    }_${Date.now()}${path.extname(passbookFile.name)}`;
+
+    const aadharFilePath = path.join(uploadDir, aadharFileName);
+    const panCardFilePath = path.join(uploadDir, panCardFileName);
+    const passbookFilePath = path.join(uploadDir, passbookFileName);
+
+    // Use the .mv() method from express-fileupload to move the files
+    await aadharFile.mv(aadharFilePath);
+    await panCardFile.mv(panCardFilePath);
+    await passbookFile.mv(passbookFilePath);
+
+    // 4. Create the specific service document (ITR) in the database.
+    const specificService = await ITR.create({
+      user: req.user.id,
+      aadharCardNo,
+      panCardNo,
+      accountNo,
+      ifscCode,
+      aadharFile: `/uploads/itr/${aadharFileName}`,
+      panCardFile: `/uploads/itr/${panCardFileName}`,
+      passbookFile: `/uploads/itr/${passbookFileName}`,
+    });
+
+    // 5. Create the generic Service document that links to the new ITR document.
+    const service = await Service.create({
+      user: req.user.id,
+      serviceType: "ITR", // This must match the model name/key
+      specificService: specificService._id,
+    });
+
+    // 6. Send a success response back to the client.
+    res.status(201).json({
+      message: "ITR application submitted successfully.",
+      service,
+      specificService,
+    });
+  } catch (error) {
+    // --- Improvement: Better error logging ---
+    console.error("ITR Application Error:", error);
+    res.status(500).json({
+      message: "An unexpected error occurred on the server: " + error.message,
+    });
   }
 };
