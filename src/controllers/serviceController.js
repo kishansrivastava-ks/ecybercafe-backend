@@ -8,94 +8,7 @@ import mime from "mime-types";
 import path from "path";
 import fs from "fs";
 
-/*
-export const applyForService = async (req, res) => {
-  try {
-    // Check if files are uploaded
-    if (!req.files || !req.files.photo || !req.files.signature) {
-      return res
-        .status(400)
-        .json({ message: "Photo and signature are required" });
-    }
-
-    // Destructure text fields from body
-    const {
-      fullName,
-      dateOfBirth,
-      fatherName,
-      mobileNumber,
-      aadharNumber,
-      address,
-    } = req.body;
-
-    // Validate required fields
-    const requiredFields = [
-      fullName,
-      dateOfBirth,
-      fatherName,
-      mobileNumber,
-      aadharNumber,
-      address,
-    ];
-    if (requiredFields.some((field) => !field)) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    // Generate unique filenames
-    const photoFileName = `photo_${Date.now()}${path.extname(
-      req.files.photo.name
-    )}`;
-    const signatureFileName = `signature_${Date.now()}${path.extname(
-      req.files.signature.name
-    )}`;
-
-    // Define upload paths
-    const uploadDir = path.join(process.cwd(), "uploads", "pan-card");
-
-    // Create upload directory if it doesn't exist
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
-    // Save files
-    const photoPath = path.join(uploadDir, photoFileName);
-    const signaturePath = path.join(uploadDir, signatureFileName);
-
-    req.files.photo.mv(photoPath);
-    req.files.signature.mv(signaturePath);
-
-    // Create PanCard entry
-    const specificService = await PanCard.create({
-      user: req.user.id,
-      fullName,
-      dateOfBirth: new Date(dateOfBirth),
-      fatherName,
-      mobileNumber,
-      aadharNumber,
-      address,
-      photoPath: `/uploads/pan-card/${photoFileName}`,
-      signaturePath: `/uploads/pan-card/${signatureFileName}`,
-    });
-
-    // Create Service entry
-    const service = await Service.create({
-      user: req.user.id,
-      serviceType: "PanCard",
-      specificService: specificService._id,
-    });
-
-    res.status(201).json({
-      message: "Pan Card application submitted",
-      service,
-      panCardDetails: specificService,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: error.message });
-  }
-};
-
-*/
+import sharp from "sharp";
 
 export const applyForPanCard = async (req, res) => {
   try {
@@ -584,5 +497,72 @@ export const applyForITR = async (req, res) => {
     res.status(500).json({
       message: "An unexpected error occurred on the server: " + error.message,
     });
+  }
+};
+
+export const downloadProcessedImage = async (req, res) => {
+  try {
+    const { serviceId, type } = req.params; // type will be "photo" or "signature"
+
+    // 1. Fetch the Service
+    const service = await Service.findById(serviceId).populate(
+      "specificService"
+    );
+    console.log("Service fetched for processed image:", service);
+    if (!service) {
+      return res.status(404).json({ message: "Service not found" });
+    }
+
+    // 2. Determine the file path and processing settings
+    let relativePath = "";
+    let width = 0;
+    let height = 0;
+    let dpi = 0;
+
+    if (type === "photo") {
+      relativePath = service.specificService.photoPath;
+      width = 213;
+      height = 213;
+      dpi = 300;
+    } else if (type === "signature") {
+      relativePath = service.specificService.signaturePath;
+      width = 400;
+      height = 200;
+      dpi = 600;
+    } else {
+      return res.status(400).json({ message: "Invalid image type requested" });
+    }
+
+    // 3. Construct absolute path
+    // Remove leading slash if present to join correctly with process.cwd()
+    const cleanPath = relativePath.startsWith("/")
+      ? relativePath.slice(1)
+      : relativePath;
+    const filePath = path.join(process.cwd(), cleanPath);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: "File not found on server" });
+    }
+
+    // 4. Process with Sharp
+    const processedImageBuffer = await sharp(filePath)
+      .resize(width, height, {
+        fit: "fill", // Forces exact dimensions (might stretch if aspect ratio differs)
+        background: { r: 255, g: 255, b: 255, alpha: 1 }, // White background (safe for JPEGs)
+      })
+      .withMetadata({ density: dpi }) // SETS THE DPI
+      .toFormat("jpeg")
+      .toBuffer();
+
+    // 5. Send Response
+    res.set("Content-Type", "image/jpeg");
+    res.set(
+      "Content-Disposition",
+      `attachment; filename="${type}_processed_${serviceId}.jpg"`
+    );
+    res.send(processedImageBuffer);
+  } catch (error) {
+    console.error("Error processing image download:", error);
+    res.status(500).json({ message: "Error processing image download" });
   }
 };

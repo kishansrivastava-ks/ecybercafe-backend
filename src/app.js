@@ -10,6 +10,7 @@ import serviceRoutes from "./routes/serviceRoutes.js";
 import fileUpload from "express-fileupload";
 import path from "path";
 import documentRoutes from "./routes/documentRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
 
 const app = express();
 
@@ -38,7 +39,7 @@ app.use(bodyParser.json());
 
 app.use(
   fileUpload({
-    limits: { fileSize: 10 * 1024 * 1024 },
+    limits: { fileSize: 20 * 1024 * 1024 },
     useTempFiles: false,
   })
 );
@@ -58,6 +59,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/document", documentRoutes);
+app.use("/api/payment", paymentRoutes);
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {

@@ -12,6 +12,7 @@ import {
   deleteService,
   deleteAllServices,
   applyForITR,
+  downloadProcessedImage,
 } from "../controllers/serviceController.js";
 import { protect, isAdmin } from "../middlewares/authMiddleware.js";
 
@@ -39,6 +40,14 @@ router.get(
   "/:serviceId/documents/:documentId/download",
   protect,
   downloadServiceDocument
+);
+
+// NEW ROUTE: Download processed photo or signature
+// Example usage: /api/services/:serviceId/download-processed/photo
+router.get(
+  "/:serviceId/download-processed/:type",
+  protect, // Keep protection if needed
+  downloadProcessedImage
 );
 
 router.delete("/all", protect, deleteAllServices);
