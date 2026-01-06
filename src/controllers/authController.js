@@ -98,6 +98,8 @@ export const login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        jila: user.jila,
+        prakhand: user.prakhand,
       },
     });
   } catch (error) {

@@ -11,6 +11,7 @@ import fileUpload from "express-fileupload";
 import path from "path";
 import documentRoutes from "./routes/documentRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
 
 const app = express();
 
@@ -56,6 +57,7 @@ app.use(
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/user", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/document", documentRoutes);
