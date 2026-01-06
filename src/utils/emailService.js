@@ -18,13 +18,14 @@ const transporter = nodemailer.createTransport({
  * @param {string} subject - Email subject
  * @param {string} text - Email body (plain text)
  */
-const sendEmail = async (to, subject, text) => {
+const sendEmail = async (to, subject, text, html) => {
   try {
     const mailOptions = {
       from: `"CyberCafe Services" <${process.env.EMAIL_USER}>`,
       to,
       subject,
       text,
+      html,
     };
 
     await transporter.sendMail(mailOptions);

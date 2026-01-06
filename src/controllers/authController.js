@@ -106,3 +106,49 @@ export const login = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const forgotPassword = async (req, res, next) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ message: "Email required" });
+
+  const user = await User.findOne({ email });
+  if (!user)
+    return res.status(404).json({ message: "No user with that email" });
+
+  const resetToken = user.createPasswordResetToken();
+  await user.save({ validateBeforeSave: false });
+
+  const resetURL = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+  const subject = "Password Reset for E-Cybercafe";
+  const text = `Reset your password using this link: ${resetURL} (link expires in 1 hour)`;
+  const html = `<p>Reset your password by visiting the link below. This link is valid for 1 hour.</p><a href="${resetURL}">${resetURL}</a>`;
+
+  await sendEmail(user.email, subject, text, html);
+
+  res.json({ message: "Password reset link sent to email" });
+};
+
+export const resetPassword = async (req, res, next) => {
+  const { token, password, confirmPassword } = req.body;
+  if (!token || !password || !confirmPassword)
+    return res.status(400).json({ message: "Token and passwords required" });
+  if (password !== confirmPassword)
+    return res.status(400).json({ message: "Passwords do not match" });
+
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  const user = await User.findOne({
+    passwordResetTokenHash: tokenHash,
+    passwordResetExpires: { $gt: Date.now() },
+  });
+
+  if (!user)
+    return res.status(400).json({ message: "Invalid or expired token" });
+
+  user.password = password;
+  user.passwordResetTokenHash = undefined;
+  user.passwordResetExpires = undefined;
+  await user.save();
+
+  const jwtToken = generateToken(user);
+  res.json({ message: "Password reset successful", token: jwtToken });
+};

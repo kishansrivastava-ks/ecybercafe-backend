@@ -15,21 +15,21 @@ import userRoutes from "./routes/userRoutes.js";
 
 const app = express();
 
-// const corsOptions = {
-//   origin: ["https://ecybercafe.in", "https://www.ecybercafe.in"],
-//   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-//   credentials: true,
-//   allowedHeaders: [
-//     "Content-Type",
-//     "Authorization",
-//     "Access-Control-Allow-Origin",
-//   ],
-// };
+const corsOptions = {
+  origin: ["https://ecybercafe.in", "https://www.ecybercafe.in"],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  credentials: true,
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "Access-Control-Allow-Origin",
+  ],
+};
 
-// app.use(cors(corsOptions));
-// app.options("*", cors(corsOptions));
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
-app.use(cors());
+// app.use(cors());
 
 // Middleware
 app.use(helmet());
