@@ -15,7 +15,7 @@ const generateToken = (user) => {
 // Signup Controller
 export const signup = async (req, res) => {
   try {
-    const { name, email, password, confirmPassword } = req.body;
+    const { name, email, password, confirmPassword, jila, prakhand } = req.body;
 
     if (password !== confirmPassword)
       return res.status(400).json({ message: "Passwords do not match" });
@@ -44,7 +44,7 @@ export const signup = async (req, res) => {
 // Verify Email Controller
 export const verifyEmail = async (req, res) => {
   try {
-    const { email, code, name, password } = req.body;
+    const { email, code, name, password, jila, prakhand } = req.body;
 
     const verificationRecord = await Verification.findOne({ email, code });
     if (!verificationRecord || verificationRecord.expiresAt < new Date()) {
@@ -53,7 +53,14 @@ export const verifyEmail = async (req, res) => {
         .json({ message: "Invalid or expired verification code" });
     }
 
-    await User.create({ name, email, password, isVerified: true });
+    await User.create({
+      name,
+      email,
+      password,
+      jila,
+      prakhand,
+      isVerified: true,
+    });
     await Verification.deleteOne({ email });
 
     res.status(201).json({ message: "Email verified. You can now log in." });

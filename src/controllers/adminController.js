@@ -85,3 +85,24 @@ export const addServiceComment = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Get All Users (Admin Only)
+export const getAllUsers = async (req, res) => {
+  try {
+    // Fetch all users but exclude the 'password' field
+    const users = await User.find({
+      role: "user",
+    })
+      .select("-password")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      users,
+    });
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({ message: "Error retrieving users" });
+  }
+};

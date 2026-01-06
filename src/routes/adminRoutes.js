@@ -2,6 +2,7 @@ import express from "express";
 import {
   addServiceComment,
   createAdmin,
+  getAllUsers,
   updateServiceStatus,
 } from "../controllers/adminController.js";
 import { isAdmin, protect } from "../middlewares/authMiddleware.js";
@@ -22,6 +23,9 @@ router.patch(
   isAdmin,
   updateServiceStatus
 );
+
+// Route to get all users (Admin only)
+router.get("/users/all-users", protect, isAdmin, getAllUsers);
 
 // Route to add comment to service (Admin only)
 router.post("/service/:serviceId/comment", protect, isAdmin, addServiceComment);
