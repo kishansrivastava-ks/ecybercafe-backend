@@ -4,11 +4,17 @@ import Rtps from "../models/Rtps.js";
 import JobCard from "../models/JobCard.js";
 import ITR from "../models/ITR.js";
 
+import User from "../models/User.js";
+import Transaction from "../models/Transaction.js";
+
 import mime from "mime-types";
 import path from "path";
 import fs from "fs";
 
 import sharp from "sharp";
+
+// Define the cost for this specific service
+const PANCARD_COST = 125;
 
 export const applyForPanCard = async (req, res) => {
   try {
@@ -44,6 +50,21 @@ export const applyForPanCard = async (req, res) => {
         message: "Photo and signature and Aadhar card are required for PanCard",
       });
     }
+
+    // ---------------------------------------------------------
+    // 2. WALLET CHECK (New Logic)
+    // ---------------------------------------------------------
+    const user = await User.findById(req.user.id);
+
+    if (user.walletBalance < PANCARD_COST) {
+      return res.status(402).json({
+        // 402 Payment Required
+        message: `Insufficient wallet balance. Required: ₹${PANCARD_COST}, Available: ₹${user.walletBalance}. Please recharge your wallet.`,
+      });
+    }
+    // ---------------------------------------------------------
+
+    // 3. File Handling
     const uploadDir = path.join(process.cwd(), "uploads", "pan-card");
     if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
@@ -63,6 +84,7 @@ export const applyForPanCard = async (req, res) => {
     req.files.signature.mv(signaturePath);
     req.files.aadharFile.mv(aadharFilePath);
 
+    // 4. Create PanCard Specific Record
     const specificService = await PanCard.create({
       user: req.user.id,
       fullName,
@@ -76,15 +98,38 @@ export const applyForPanCard = async (req, res) => {
       aadharFilePath: `/uploads/pan-card/${aadharFileName}`,
     });
 
+    // 5. Create General Service Record
     const service = await Service.create({
       user: req.user.id,
       serviceType: "PanCard",
       specificService: specificService._id,
     });
+
+    // ---------------------------------------------------------
+    // 6. DEDUCT BALANCE & LOG TRANSACTION
+    // ---------------------------------------------------------
+
+    // A. Deduct Amount from User Wallet
+    user.walletBalance -= PANCARD_COST;
+    await user.save();
+
+    // B. Create Debit Transaction Log
+    await Transaction.create({
+      user: req.user.id,
+      amount: PANCARD_COST,
+      type: "DEBIT",
+      category: "SERVICE_PAYMENT",
+      description: `Applied for Pan Card (Name: ${fullName})`,
+      status: "SUCCESS",
+      serviceId: service._id, // Link it to the service for reference
+    });
+    // ---------------------------------------------------------
+
     res.status(201).json({
       message: "PanCard application submitted successfully",
       service,
       specificService,
+      remainingBalance: user.walletBalance,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

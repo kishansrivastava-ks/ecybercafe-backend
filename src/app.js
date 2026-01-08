@@ -12,11 +12,17 @@ import path from "path";
 import documentRoutes from "./routes/documentRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import walletRoutes from "./routes/walletRoutes.js";
 
 const app = express();
 
 const corsOptions = {
-  origin: ["https://ecybercafe.in", "https://www.ecybercafe.in"],
+  // origin: ["https://ecybercafe.in", "https://www.ecybercafe.in"],
+  origin: [
+    "https://ecybercafe.in",
+    "https://www.ecybercafe.in",
+    "http://localhost:5173",
+  ],
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   credentials: true,
   allowedHeaders: [
@@ -34,6 +40,9 @@ app.options("*", cors(corsOptions));
 // Middleware
 app.use(helmet());
 app.use(compression());
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.use(morgan("dev"));
 app.use(bodyParser.json());
@@ -62,6 +71,8 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/document", documentRoutes);
 app.use("/api/payment", paymentRoutes);
+
+app.use("/api/wallet", walletRoutes);
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {

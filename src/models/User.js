@@ -12,6 +12,13 @@ const userSchema = new mongoose.Schema(
     jila: { type: String, required: true },
     prakhand: { type: String, required: true },
 
+    // --- NEW: Wallet Balance ---
+    walletBalance: {
+      type: Number,
+      default: 0,
+      min: [0, "Wallet balance cannot be negative"],
+    },
+
     // Password reset
     passwordResetTokenHash: { type: String },
     passwordResetExpires: { type: Date },
