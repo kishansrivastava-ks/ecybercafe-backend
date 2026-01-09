@@ -484,7 +484,7 @@ export const applyForVoterCard = async (req, res) => {
       }
     }
 
-    const VOTER_COST_PER_UNIT = 2;
+    const VOTER_COST_PER_UNIT = 370;
     const totalCount = applications.length;
     const totalCost = totalCount * VOTER_COST_PER_UNIT;
 
