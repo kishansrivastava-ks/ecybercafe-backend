@@ -1,11 +1,10 @@
 import Service from "../models/Service.js";
 import PanCard from "../models/PanCard.js";
-import Rtps from "../models/Rtps.js";
-import JobCard from "../models/JobCard.js";
-import ITR from "../models/ITR.js";
 
 import User from "../models/User.js";
 import Transaction from "../models/Transaction.js";
+
+import VoterCard from "../models/VoterCard.js";
 
 import mime from "mime-types";
 import path from "path";
@@ -130,80 +129,6 @@ export const applyForPanCard = async (req, res) => {
       service,
       specificService,
       remainingBalance: user.walletBalance,
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-export const applyForRTPS = async (req, res) => {
-  try {
-    const { block, registrationType, registrationNumber } = req.body;
-    if (![block, registrationType, registrationNumber].every(Boolean)) {
-      return res
-        .status(400)
-        .json({ message: "All fields are required for RTPS" });
-    }
-    const specificService = await Rtps.create({
-      user: req.user.id,
-      block,
-      registrationType,
-      registrationNumber,
-    });
-
-    const service = await Service.create({
-      user: req.user.id,
-      serviceType: "RTPS",
-      specificService: specificService._id,
-    });
-    res.status(201).json({
-      message: "RTPS application submitted successfully",
-      service,
-      specificService,
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-export const applyForJobCard = async (req, res) => {
-  try {
-    if (!req.files || !req.files.aadharFile || !req.files.passbookFile) {
-      return res
-        .status(400)
-        .json({ message: "Aadhar and Passbook files are required" });
-    }
-    const uploadDir = path.join(process.cwd(), "uploads", "job-card");
-    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-    const aadharFileName = `aadhar_${Date.now()}${path.extname(
-      req.files.aadharFile.name
-    )}`;
-    const passbookFileName = `passbook_${Date.now()}${path.extname(
-      req.files.passbookFile.name
-    )}`;
-    const aadharFilePath = path.join(uploadDir, aadharFileName);
-    const passbookFilePath = path.join(uploadDir, passbookFileName);
-    req.files.aadharFile.mv(aadharFilePath);
-    req.files.passbookFile.mv(passbookFilePath);
-
-    const specificService = await JobCard.create({
-      user: req.user.id,
-      name: req.body.name,
-      fatherHusbandName: req.body.fatherHusbandName,
-      aadharFilePath: `/uploads/job-card/${aadharFileName}`,
-      passbookFilePath: `/uploads/job-card/${passbookFileName}`,
-    });
-
-    const service = await Service.create({
-      user: req.user.id,
-      serviceType: "JobCard",
-      specificService: specificService._id,
-    });
-    res.status(201).json({
-      message: "JobCard application submitted successfully",
-      service,
-      specificService,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -465,86 +390,6 @@ export const listServiceDocuments = async (req, res) => {
   }
 };
 
-export const applyForITR = async (req, res) => {
-  try {
-    // --- Improvement: More robust validation ---
-    // 1. Validate that files were actually uploaded.
-    const { aadharFile, panCardFile, passbookFile } = req.files || {};
-    if (!aadharFile || !panCardFile || !passbookFile) {
-      return res.status(400).json({
-        message: "Aadhar, PAN card, and Passbook files are all required.",
-      });
-    }
-
-    // 2. Validate that all required text fields from the form body are present.
-    const { aadharCardNo, panCardNo, accountNo, ifscCode } = req.body;
-    if (!aadharCardNo || !panCardNo || !accountNo || !ifscCode) {
-      return res.status(400).json({ message: "All form fields are required." });
-    }
-
-    // --- Improvement: Centralized upload path and directory creation ---
-    // 3. Handle file saving in a dedicated 'itr' subfolder.
-    // This logic could be abstracted into a reusable helper function to reduce code duplication
-    // across your different service application controllers.
-    const uploadDir = path.join(process.cwd(), "uploads", "itr");
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
-    // Create unique filenames to prevent overwrites
-    const aadharFileName = `aadhar_${req.user.id}_${Date.now()}${path.extname(
-      aadharFile.name
-    )}`;
-    const panCardFileName = `pancard_${req.user.id}_${Date.now()}${path.extname(
-      panCardFile.name
-    )}`;
-    const passbookFileName = `passbook_${
-      req.user.id
-    }_${Date.now()}${path.extname(passbookFile.name)}`;
-
-    const aadharFilePath = path.join(uploadDir, aadharFileName);
-    const panCardFilePath = path.join(uploadDir, panCardFileName);
-    const passbookFilePath = path.join(uploadDir, passbookFileName);
-
-    // Use the .mv() method from express-fileupload to move the files
-    await aadharFile.mv(aadharFilePath);
-    await panCardFile.mv(panCardFilePath);
-    await passbookFile.mv(passbookFilePath);
-
-    // 4. Create the specific service document (ITR) in the database.
-    const specificService = await ITR.create({
-      user: req.user.id,
-      aadharCardNo,
-      panCardNo,
-      accountNo,
-      ifscCode,
-      aadharFile: `/uploads/itr/${aadharFileName}`,
-      panCardFile: `/uploads/itr/${panCardFileName}`,
-      passbookFile: `/uploads/itr/${passbookFileName}`,
-    });
-
-    // 5. Create the generic Service document that links to the new ITR document.
-    const service = await Service.create({
-      user: req.user.id,
-      serviceType: "ITR", // This must match the model name/key
-      specificService: specificService._id,
-    });
-
-    // 6. Send a success response back to the client.
-    res.status(201).json({
-      message: "ITR application submitted successfully.",
-      service,
-      specificService,
-    });
-  } catch (error) {
-    // --- Improvement: Better error logging ---
-    console.error("ITR Application Error:", error);
-    res.status(500).json({
-      message: "An unexpected error occurred on the server: " + error.message,
-    });
-  }
-};
-
 export const downloadProcessedImage = async (req, res) => {
   try {
     const { serviceId, type } = req.params; // type will be "photo" or "signature"
@@ -609,5 +454,191 @@ export const downloadProcessedImage = async (req, res) => {
   } catch (error) {
     console.error("Error processing image download:", error);
     res.status(500).json({ message: "Error processing image download" });
+  }
+};
+
+// FOR VOTER PDF SERVICE
+// --- 1. BULK APPLY FOR VOTER CARD ---
+export const applyForVoterCard = async (req, res) => {
+  try {
+    const { applications } = req.body; // Expecting an Array of objects
+
+    // 1. Validation
+    if (
+      !applications ||
+      !Array.isArray(applications) ||
+      applications.length === 0
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Please provide a list of applications." });
+    }
+
+    // Validate each item in the array
+    for (const app of applications) {
+      if (!app.state || !app.name || !app.referenceNumber) {
+        return res.status(400).json({
+          message:
+            "State, Name, and Reference Number are required for all items.",
+        });
+      }
+    }
+
+    const VOTER_COST_PER_UNIT = 2;
+    const totalCount = applications.length;
+    const totalCost = totalCount * VOTER_COST_PER_UNIT;
+
+    // 2. Wallet Check
+    const user = await User.findById(req.user.id);
+    if (user.walletBalance < totalCost) {
+      return res.status(402).json({
+        message: `Insufficient wallet balance. Total Cost: ₹${totalCost} for ${totalCount} applications. Available: ₹${user.walletBalance}.`,
+      });
+    }
+
+    // 3. Process Applications
+    const createdServices = [];
+
+    // Loop through and create records
+    // Note: In a production environment with thousands of items, you might use insertMany,
+    // but for <100 items, a loop with individual creation ensures proper linkage.
+    for (const appData of applications) {
+      // A. Create Specific Record
+      const specificService = await VoterCard.create({
+        user: req.user.id,
+        state: appData.state,
+        name: appData.name,
+        referenceNumber: appData.referenceNumber,
+        price: VOTER_COST_PER_UNIT,
+        status: "pending",
+      });
+
+      // B. Create Generic Service Record
+      const service = await Service.create({
+        user: req.user.id,
+        serviceType: "VoterCard",
+        specificService: specificService._id,
+        status: "pending",
+      });
+
+      createdServices.push(service);
+    }
+
+    // 4. Deduct Balance & Log Transaction (Single Transaction for Bulk Order)
+    user.walletBalance -= totalCost;
+    await user.save();
+
+    await Transaction.create({
+      user: req.user.id,
+      amount: totalCost,
+      type: "DEBIT",
+      category: "SERVICE_PAYMENT",
+      description: `Bulk Voter PDF Application (${totalCount} items)`,
+      status: "SUCCESS",
+      // We can't link multiple service IDs easily in one field,
+      // so we leave serviceId null or link the first one if strictly needed.
+    });
+
+    res.status(201).json({
+      message: `Successfully created ${totalCount} applications.`,
+      count: totalCount,
+      deductedAmount: totalCost,
+      remainingBalance: user.walletBalance,
+      services: createdServices,
+    });
+  } catch (error) {
+    console.error("Voter Apply Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// --- 2. ADMIN UPLOAD/REPLACE DOCUMENT ---
+export const uploadVoterDoc = async (req, res) => {
+  try {
+    const { serviceId } = req.params;
+
+    if (!req.files || !req.files.document) {
+      return res.status(400).json({ message: "No document file uploaded." });
+    }
+
+    // Find the Generic Service first
+    const service = await Service.findById(serviceId).populate(
+      "specificService"
+    );
+    if (!service || service.serviceType !== "VoterCard") {
+      return res.status(404).json({ message: "Voter Service not found." });
+    }
+
+    const voterCard = await VoterCard.findById(service.specificService._id);
+    if (!voterCard) {
+      return res
+        .status(404)
+        .json({ message: "Specific Voter Card record not found." });
+    }
+
+    // File Handling
+    const file = req.files.document;
+    const uploadDir = path.join(process.cwd(), "uploads", "voter-docs");
+    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+    // Generate filename
+    const fileName = `voter_admin_${serviceId}_${Date.now()}${path.extname(
+      file.name
+    )}`;
+    const filePath = path.join(uploadDir, fileName);
+
+    // Save File
+    await file.mv(filePath);
+
+    // Update specific schema (Replacement logic)
+    // If an old file exists, you could fs.unlinkSync(oldPath) here to save space if needed.
+    voterCard.adminFilePath = `/uploads/voter-docs/${fileName}`;
+    voterCard.adminFileOriginalName = file.name;
+
+    // Auto-update status to completed if admin uploads file? (Optional, but helpful)
+    voterCard.status = "completed";
+    service.status = "completed"; // Update parent status too
+
+    await voterCard.save();
+    await service.save();
+
+    res.status(200).json({
+      message: "Document uploaded successfully.",
+      filePath: voterCard.adminFilePath,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const downloadVoterPdf = async (req, res) => {
+  try {
+    const { serviceId } = req.params;
+
+    const service = await Service.findById(serviceId).populate(
+      "specificService"
+    );
+    if (!service || !service.specificService.adminFilePath) {
+      return res.status(404).json({ message: "File not found." });
+    }
+
+    // Authorization check
+    if (req.user.role !== "admin" && service.user.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    const relativePath = service.specificService.adminFilePath;
+    const filePath = path.join(process.cwd(), relativePath);
+
+    if (fs.existsSync(filePath)) {
+      res.download(
+        filePath,
+        service.specificService.adminFileOriginalName || "voter_card.pdf"
+      );
+    } else {
+      res.status(404).json({ message: "File missing on server" });
+    }
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };

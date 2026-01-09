@@ -10,7 +10,6 @@ import serviceRoutes from "./routes/serviceRoutes.js";
 import fileUpload from "express-fileupload";
 import path from "path";
 import documentRoutes from "./routes/documentRoutes.js";
-import paymentRoutes from "./routes/paymentRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import walletRoutes from "./routes/walletRoutes.js";
 import adminStatsRoutes from "./routes/adminStatsRoutes.js";
@@ -71,7 +70,6 @@ app.use("/api/user", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/document", documentRoutes);
-app.use("/api/payment", paymentRoutes);
 
 app.use("/api/wallet", walletRoutes);
 

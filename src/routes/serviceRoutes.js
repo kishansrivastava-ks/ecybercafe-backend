@@ -7,12 +7,12 @@ import {
   downloadServiceDocument,
   listServiceDocuments,
   applyForPanCard,
-  applyForRTPS,
-  applyForJobCard,
   deleteService,
   deleteAllServices,
-  applyForITR,
   downloadProcessedImage,
+  applyForVoterCard,
+  uploadVoterDoc,
+  downloadVoterPdf,
 } from "../controllers/serviceController.js";
 import { protect, isAdmin } from "../middlewares/authMiddleware.js";
 
@@ -21,10 +21,6 @@ const router = express.Router();
 // router.post("/apply", protect, applyForService);
 
 router.post("/apply/pan-card", protect, applyForPanCard);
-router.post("/apply/rtps", protect, applyForRTPS);
-router.post("/apply/job-card", protect, applyForJobCard);
-
-router.post("/apply/itr", protect, applyForITR);
 
 router.get("/my-services", protect, getUserServices);
 router.put("/update/:serviceId", protect, isAdmin, updateService);
@@ -49,6 +45,15 @@ router.get(
   protect, // Keep protection if needed
   downloadProcessedImage
 );
+
+// FOR VOTER PDF SERVICE
+// Retailer Route: Bulk Apply
+router.post("/apply/voter-card", protect, applyForVoterCard);
+
+// Admin Route: Upload/Replace Voter PDF
+// Note: This is specific to Voter Card service ID
+router.post("/:serviceId/voter/upload-doc", protect, isAdmin, uploadVoterDoc);
+router.get("/:serviceId/voter/download", protect, downloadVoterPdf);
 
 router.delete("/all", protect, deleteAllServices);
 router.delete("/:serviceId", protect, deleteService);

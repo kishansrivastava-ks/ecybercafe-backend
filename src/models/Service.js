@@ -1,11 +1,8 @@
 import mongoose from "mongoose";
 import PanCard from "./PanCard.js";
-import Rtps from "./Rtps.js";
-import JobCard from "./JobCard.js";
+import VoterCard from "./VoterCard.js";
 
-import ITR from "./ITR.js";
-
-const models = { PanCard, RTPS: Rtps, JobCard, ITR };
+const models = { PanCard, VoterCard };
 
 const serviceSchema = new mongoose.Schema(
   {
