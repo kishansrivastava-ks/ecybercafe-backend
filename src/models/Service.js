@@ -2,8 +2,9 @@ import mongoose from "mongoose";
 import PanCard from "./PanCard.js";
 import VoterCard from "./VoterCard.js";
 import Rtps from "./Rtps.js";
+import LabourCard from "./LabourCard.js";
 
-const models = { PanCard, VoterCard, Rtps };
+const models = { PanCard, VoterCard, Rtps, LabourCard };
 
 const serviceSchema = new mongoose.Schema(
   {

@@ -6,6 +6,7 @@ import Transaction from "../models/Transaction.js";
 
 import VoterCard from "../models/VoterCard.js";
 import Rtps from "../models/Rtps.js";
+import LabourCard from "../models/LabourCard.js";
 
 import mime from "mime-types";
 import path from "path";
@@ -804,6 +805,165 @@ export const handleRtpsAction = async (req, res) => {
     });
   } catch (error) {
     console.error("RTPS Admin Action Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ---------------------------------------------
+// FOR LABOUR CARD
+// ---------------------------------------------
+
+// --- 1. BULK APPLY FOR LABOUR CARD (Retailer) ---
+export const applyForLabourCard = async (req, res) => {
+  try {
+    const { applications } = req.body; // Expecting Array
+
+    // Basic Validation
+    if (
+      !applications ||
+      !Array.isArray(applications) ||
+      applications.length === 0
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Please provide a list of applications." });
+    }
+
+    // Validate fields for each item
+    for (const app of applications) {
+      // District is optional, so we don't check it here
+      if (!app.block || !app.name || !app.applicationNumber) {
+        return res.status(400).json({
+          message:
+            "Block, Name, and Application Number are required for all items.",
+        });
+      }
+    }
+
+    const LABOUR_COST = 2;
+    const totalCount = applications.length;
+    const totalCost = totalCount * LABOUR_COST;
+
+    // Wallet Check
+    const user = await User.findById(req.user.id);
+    if (user.walletBalance < totalCost) {
+      return res.status(402).json({
+        message: `Insufficient wallet balance. Total Cost: ₹${totalCost}. Available: ₹${user.walletBalance}.`,
+      });
+    }
+
+    // Process Applications
+    const createdServices = [];
+
+    for (const appData of applications) {
+      // A. Create Specific Record
+      const specificService = await LabourCard.create({
+        user: req.user.id,
+        district: appData.district || "", // Handle optional
+        block: appData.block,
+        name: appData.name,
+        applicationNumber: appData.applicationNumber,
+        price: LABOUR_COST,
+        status: "pending",
+      });
+
+      // B. Create Generic Service Record
+      const service = await Service.create({
+        user: req.user.id,
+        serviceType: "LabourCard",
+        specificService: specificService._id,
+        status: "pending",
+      });
+
+      createdServices.push(service);
+    }
+
+    // Deduct Balance & Log
+    user.walletBalance -= totalCost;
+    await user.save();
+
+    await Transaction.create({
+      user: req.user.id,
+      amount: totalCost,
+      type: "DEBIT",
+      category: "SERVICE_PAYMENT",
+      description: `Bulk Labour Card Application (${totalCount} items)`,
+      status: "SUCCESS",
+    });
+
+    res.status(201).json({
+      message: `Successfully created ${totalCount} Labour Card applications.`,
+      count: totalCount,
+      deductedAmount: totalCost,
+      remainingBalance: user.walletBalance,
+      services: createdServices,
+    });
+  } catch (error) {
+    console.error("Labour Card Apply Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// --- 2. ADMIN ACTION HANDLER (Approve/Reject/Remark) ---
+export const handleLabourCardAction = async (req, res) => {
+  try {
+    const { serviceId } = req.params;
+    const { action, remark } = req.body;
+
+    // Find Generic Service
+    const service = await Service.findById(serviceId).populate(
+      "specificService"
+    );
+    if (!service || service.serviceType !== "LabourCard") {
+      return res
+        .status(404)
+        .json({ message: "Labour Card Service not found." });
+    }
+
+    // Find Specific Record
+    const labourRecord = await LabourCard.findById(service.specificService._id);
+    if (!labourRecord) {
+      return res
+        .status(404)
+        .json({ message: "Specific Labour Card record not found." });
+    }
+
+    // --- Action Logic ---
+    if (action === "approve") {
+      labourRecord.status = "approved";
+      service.status = "approved";
+      if (remark) labourRecord.statusRemark = remark;
+    } else if (action === "reject") {
+      if (!remark)
+        return res
+          .status(400)
+          .json({ message: "Remark is required for rejection." });
+      labourRecord.status = "rejected";
+      service.status = "rejected";
+      labourRecord.statusRemark = remark;
+    } else if (action === "general_remark") {
+      if (!remark)
+        return res
+          .status(400)
+          .json({ message: "Remark text cannot be empty." });
+      labourRecord.generalRemarks.push({
+        text: remark,
+        adminId: req.user.id,
+      });
+    } else {
+      return res.status(400).json({ message: "Invalid action type." });
+    }
+
+    await labourRecord.save();
+    await service.save();
+
+    res.status(200).json({
+      message: "Action performed successfully",
+      status: labourRecord.status,
+      data: labourRecord,
+    });
+  } catch (error) {
+    console.error("Labour Admin Action Error:", error);
     res.status(500).json({ message: error.message });
   }
 };

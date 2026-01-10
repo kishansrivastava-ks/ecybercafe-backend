@@ -10,6 +10,7 @@ import {
   getAllServices,
   getServiceDetails,
   getServicesByType,
+  handleLabourCardAction,
   handleRtpsAction,
 } from "../controllers/serviceController.js";
 
@@ -42,6 +43,14 @@ router.post(
   protect,
   isAdmin,
   handleRtpsAction
+);
+
+// Admin: Perform Action on Labour Card
+router.post(
+  "/service/:serviceId/labour/action",
+  protect,
+  isAdmin,
+  handleLabourCardAction
 );
 
 export default router;
