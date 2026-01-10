@@ -10,6 +10,7 @@ import {
   getAllServices,
   getServiceDetails,
   getServicesByType,
+  handleRtpsAction,
 } from "../controllers/serviceController.js";
 
 const router = express.Router();
@@ -34,5 +35,13 @@ router.get("/service/all-services", protect, isAdmin, getAllServices);
 router.get("/service/by-type", protect, isAdmin, getServicesByType);
 
 router.get("/service/:id", protect, getServiceDetails);
+
+// Admin: Perform Action on RTPS (Approve/Reject/Remark)
+router.post(
+  "/service/:serviceId/rtps/action",
+  protect,
+  isAdmin,
+  handleRtpsAction
+);
 
 export default router;

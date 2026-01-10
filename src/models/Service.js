@@ -1,8 +1,9 @@
 import mongoose from "mongoose";
 import PanCard from "./PanCard.js";
 import VoterCard from "./VoterCard.js";
+import Rtps from "./Rtps.js";
 
-const models = { PanCard, VoterCard };
+const models = { PanCard, VoterCard, Rtps };
 
 const serviceSchema = new mongoose.Schema(
   {
@@ -19,7 +20,7 @@ const serviceSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "in_progress", "completed"],
+      enum: ["pending", "in_progress", "completed", "approved", "rejected"],
       default: "pending",
     },
     comments: [{ text: String, createdAt: { type: Date, default: Date.now } }],

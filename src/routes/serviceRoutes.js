@@ -13,6 +13,7 @@ import {
   applyForVoterCard,
   uploadVoterDoc,
   downloadVoterPdf,
+  applyForRtps,
 } from "../controllers/serviceController.js";
 import { protect, isAdmin } from "../middlewares/authMiddleware.js";
 
@@ -54,6 +55,9 @@ router.post("/apply/voter-card", protect, applyForVoterCard);
 // Note: This is specific to Voter Card service ID
 router.post("/:serviceId/voter/upload-doc", protect, isAdmin, uploadVoterDoc);
 router.get("/:serviceId/voter/download", protect, downloadVoterPdf);
+
+// Retailer: Bulk Apply RTPS
+router.post("/apply/rtps", protect, applyForRtps);
 
 router.delete("/all", protect, deleteAllServices);
 router.delete("/:serviceId", protect, deleteService);

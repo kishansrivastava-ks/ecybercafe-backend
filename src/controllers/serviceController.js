@@ -5,6 +5,7 @@ import User from "../models/User.js";
 import Transaction from "../models/Transaction.js";
 
 import VoterCard from "../models/VoterCard.js";
+import Rtps from "../models/Rtps.js";
 
 import mime from "mime-types";
 import path from "path";
@@ -457,7 +458,10 @@ export const downloadProcessedImage = async (req, res) => {
   }
 };
 
+// ---------------------------------------------
 // FOR VOTER PDF SERVICE
+// ---------------------------------------------
+
 // --- 1. BULK APPLY FOR VOTER CARD ---
 export const applyForVoterCard = async (req, res) => {
   try {
@@ -484,7 +488,7 @@ export const applyForVoterCard = async (req, res) => {
       }
     }
 
-    const VOTER_COST_PER_UNIT = 370;
+    const VOTER_COST_PER_UNIT = 30;
     const totalCount = applications.length;
     const totalCost = totalCount * VOTER_COST_PER_UNIT;
 
@@ -640,5 +644,166 @@ export const downloadVoterPdf = async (req, res) => {
     }
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+// ---------------------------------------------
+// FOR RTPS SERVICE
+// ---------------------------------------------
+
+// --- 1. BULK APPLY FOR RTPS (Retailer) ---
+export const applyForRtps = async (req, res) => {
+  try {
+    const { applications } = req.body; // Expecting Array
+
+    // Validation
+    if (
+      !applications ||
+      !Array.isArray(applications) ||
+      applications.length === 0
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Please provide a list of applications." });
+    }
+
+    // Validate fields
+    for (const app of applications) {
+      if (!app.district || !app.block || !app.referenceNumber) {
+        return res.status(400).json({
+          message:
+            "District, Block, and Reference Number are required for all items.",
+        });
+      }
+    }
+
+    const RTPS_COST = 2;
+    const totalCount = applications.length;
+    const totalCost = totalCount * RTPS_COST;
+
+    // Wallet Check
+    const user = await User.findById(req.user.id);
+    if (user.walletBalance < totalCost) {
+      return res.status(402).json({
+        message: `Insufficient wallet balance. Total Cost: ₹${totalCost}. Available: ₹${user.walletBalance}.`,
+      });
+    }
+
+    // Process Applications
+    const createdServices = [];
+
+    for (const appData of applications) {
+      // A. Create Specific Record
+      const specificService = await Rtps.create({
+        user: req.user.id,
+        district: appData.district,
+        block: appData.block,
+        referenceNumber: appData.referenceNumber,
+        price: RTPS_COST,
+        status: "pending",
+      });
+
+      // B. Create Generic Service Record
+      const service = await Service.create({
+        user: req.user.id,
+        serviceType: "Rtps",
+        specificService: specificService._id,
+        status: "pending",
+      });
+
+      createdServices.push(service);
+    }
+
+    // Deduct Balance & Log
+    user.walletBalance -= totalCost;
+    await user.save();
+
+    await Transaction.create({
+      user: req.user.id,
+      amount: totalCost,
+      type: "DEBIT",
+      category: "SERVICE_PAYMENT",
+      description: `Bulk RTPS Application (${totalCount} items)`,
+      status: "SUCCESS",
+    });
+
+    res.status(201).json({
+      message: `Successfully created ${totalCount} RTPS applications.`,
+      count: totalCount,
+      deductedAmount: totalCost,
+      remainingBalance: user.walletBalance,
+      services: createdServices,
+    });
+  } catch (error) {
+    console.error("RTPS Apply Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// --- 2. ADMIN ACTION HANDLER (Approve/Reject/Remark) ---
+export const handleRtpsAction = async (req, res) => {
+  try {
+    const { serviceId } = req.params;
+    const { action, remark } = req.body;
+    // action: 'approve', 'reject', 'general_remark'
+    // remark: String
+
+    // Find Generic Service
+    const service = await Service.findById(serviceId).populate(
+      "specificService"
+    );
+    if (!service || service.serviceType !== "Rtps") {
+      return res.status(404).json({ message: "RTPS Service not found." });
+    }
+
+    // Find Specific RTPS Record
+    const rtpsRecord = await Rtps.findById(service.specificService._id);
+    if (!rtpsRecord) {
+      return res
+        .status(404)
+        .json({ message: "Specific RTPS record not found." });
+    }
+
+    // --- Logic for Actions ---
+
+    if (action === "approve") {
+      rtpsRecord.status = "approved";
+      service.status = "approved"; // Sync parent
+      if (remark) rtpsRecord.statusRemark = remark; // Optional remark
+    } else if (action === "reject") {
+      if (!remark) {
+        return res
+          .status(400)
+          .json({ message: "Remark is required for rejection." });
+      }
+      rtpsRecord.status = "rejected";
+      service.status = "rejected"; // Sync parent
+      rtpsRecord.statusRemark = remark;
+    } else if (action === "general_remark") {
+      if (!remark) {
+        return res
+          .status(400)
+          .json({ message: "Remark text cannot be empty." });
+      }
+      rtpsRecord.generalRemarks.push({
+        text: remark,
+        adminId: req.user.id,
+      });
+      // We don't change status here
+    } else {
+      return res.status(400).json({ message: "Invalid action type." });
+    }
+
+    await rtpsRecord.save();
+    await service.save();
+
+    res.status(200).json({
+      message: "Action performed successfully",
+      status: rtpsRecord.status,
+      rtpsRecord,
+    });
+  } catch (error) {
+    console.error("RTPS Admin Action Error:", error);
+    res.status(500).json({ message: error.message });
   }
 };
