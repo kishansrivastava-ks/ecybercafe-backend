@@ -11,7 +11,7 @@ const labourCardSchema = new mongoose.Schema(
     applicationNumber: { type: String, required: true },
 
     // Config
-    price: { type: Number, default: 2 },
+    price: { type: Number, default: 370 },
 
     // Admin Actions (Same structure as RTPS)
     statusRemark: { type: String, default: null },

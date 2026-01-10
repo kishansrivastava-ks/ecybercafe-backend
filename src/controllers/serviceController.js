@@ -840,7 +840,7 @@ export const applyForLabourCard = async (req, res) => {
       }
     }
 
-    const LABOUR_COST = 2;
+    const LABOUR_COST = 370;
     const totalCount = applications.length;
     const totalCost = totalCount * LABOUR_COST;
 
