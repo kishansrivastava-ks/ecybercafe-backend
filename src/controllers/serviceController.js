@@ -677,7 +677,7 @@ export const applyForRtps = async (req, res) => {
       }
     }
 
-    const RTPS_COST = 2;
+    const RTPS_COST = 370;
     const totalCount = applications.length;
     const totalCost = totalCount * RTPS_COST;
 

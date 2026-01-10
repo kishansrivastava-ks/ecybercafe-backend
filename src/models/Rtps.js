@@ -10,7 +10,7 @@ const rtpsSchema = new mongoose.Schema(
     referenceNumber: { type: String, required: true },
 
     // Config
-    price: { type: Number, default: 2 },
+    price: { type: Number, default: 370 },
 
     // Admin Actions
     // 1. The specific note given during Approval or Rejection
