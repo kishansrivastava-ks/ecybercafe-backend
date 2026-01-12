@@ -8,6 +8,8 @@ import VoterCard from "../models/VoterCard.js";
 import Rtps from "../models/Rtps.js";
 import LabourCard from "../models/LabourCard.js";
 
+import ServiceConfig from "../models/ServiceConfig.js";
+
 import mime from "mime-types";
 import path from "path";
 import fs from "fs";
@@ -969,6 +971,17 @@ export const handleLabourCardAction = async (req, res) => {
     });
   } catch (error) {
     console.error("Labour Admin Action Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getServicePrices = async (req, res) => {
+  try {
+    const prices = await ServiceConfig.find({}).select(
+      "serviceType price label"
+    );
+    res.status(200).json(prices);
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };

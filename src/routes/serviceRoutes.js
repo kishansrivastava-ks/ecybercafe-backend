@@ -15,12 +15,14 @@ import {
   downloadVoterPdf,
   applyForRtps,
   applyForLabourCard,
+  getServicePrices,
 } from "../controllers/serviceController.js";
 import { protect, isAdmin } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-// router.post("/apply", protect, applyForService);
+// NEW: Public route for authenticated users to check prices
+router.get("/prices", protect, getServicePrices);
 
 router.post("/apply/pan-card", protect, applyForPanCard);
 
