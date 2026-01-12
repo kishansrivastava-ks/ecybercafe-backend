@@ -19,12 +19,19 @@ import {
 } from "../controllers/serviceController.js";
 import { protect, isAdmin } from "../middlewares/authMiddleware.js";
 
+import { checkServiceActive } from "../middlewares/featureFlagMiddleware.js";
+
 const router = express.Router();
 
 // NEW: Public route for authenticated users to check prices
 router.get("/prices", protect, getServicePrices);
 
-router.post("/apply/pan-card", protect, applyForPanCard);
+router.post(
+  "/apply/pan-card",
+  protect,
+  checkServiceActive("PanCard"),
+  applyForPanCard
+);
 
 router.get("/my-services", protect, getUserServices);
 router.put("/update/:serviceId", protect, isAdmin, updateService);
@@ -52,7 +59,12 @@ router.get(
 
 // FOR VOTER PDF SERVICE
 // Retailer Route: Bulk Apply
-router.post("/apply/voter-card", protect, applyForVoterCard);
+router.post(
+  "/apply/voter-card",
+  protect,
+  checkServiceActive("VoterCard"),
+  applyForVoterCard
+);
 
 // Admin Route: Upload/Replace Voter PDF
 // Note: This is specific to Voter Card service ID
@@ -60,10 +72,15 @@ router.post("/:serviceId/voter/upload-doc", protect, isAdmin, uploadVoterDoc);
 router.get("/:serviceId/voter/download", protect, downloadVoterPdf);
 
 // Retailer: Bulk Apply RTPS
-router.post("/apply/rtps", protect, applyForRtps);
+router.post("/apply/rtps", protect, checkServiceActive("Rtps"), applyForRtps);
 
 // Retailer: Bulk Apply Labour Card
-router.post("/apply/labour-card", protect, applyForLabourCard);
+router.post(
+  "/apply/labour-card",
+  protect,
+  checkServiceActive("LabourCard"),
+  applyForLabourCard
+);
 
 router.delete("/all", protect, deleteAllServices);
 router.delete("/:serviceId", protect, deleteService);

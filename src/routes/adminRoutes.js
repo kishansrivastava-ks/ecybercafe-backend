@@ -4,6 +4,7 @@ import {
   createAdmin,
   getAllServicePrices,
   getAllUsers,
+  toggleServiceStatus,
   updateServicePrice,
   updateServiceStatus,
 } from "../controllers/adminController.js";
@@ -58,5 +59,8 @@ router.post(
 // --- Pricing Configuration Routes ---
 router.get("/config/prices", protect, isAdmin, getAllServicePrices);
 router.put("/config/prices", protect, isAdmin, updateServicePrice);
+
+// Toggle Service Route
+router.patch("/config/toggle", protect, isAdmin, toggleServiceStatus);
 
 export default router;

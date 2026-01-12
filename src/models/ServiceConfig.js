@@ -14,6 +14,15 @@ const serviceConfigSchema = new mongoose.Schema(
       min: 0,
     },
     label: { type: String }, // User-friendly name (e.g., "PAN Card Application")
+
+    isActive: {
+      type: Boolean,
+      default: true, // Services are active by default
+    },
+    maintenanceMessage: {
+      type: String,
+      default: "This service is currently under maintenance.",
+    },
   },
   { timestamps: true }
 );

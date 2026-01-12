@@ -978,7 +978,7 @@ export const handleLabourCardAction = async (req, res) => {
 export const getServicePrices = async (req, res) => {
   try {
     const prices = await ServiceConfig.find({}).select(
-      "serviceType price label"
+      "serviceType price label isActive maintenanceMessage"
     );
     res.status(200).json(prices);
   } catch (error) {

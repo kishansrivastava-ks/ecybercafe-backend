@@ -168,3 +168,36 @@ export const updateServicePrice = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// ----------------------------------------------------------
+// Feature Flag Management
+// ----------------------------------------------------------
+
+/**
+ * @desc    Toggle Service Status (Active/Inactive)
+ * @route   PATCH /api/admin/config/toggle
+ */
+export const toggleServiceStatus = async (req, res) => {
+  try {
+    const { serviceType, isActive } = req.body;
+
+    if (!serviceType || typeof isActive !== "boolean") {
+      return res
+        .status(400)
+        .json({ message: "Service Type and isActive status are required" });
+    }
+
+    const config = await ServiceConfig.findOneAndUpdate(
+      { serviceType },
+      { isActive },
+      { new: true, upsert: true } // Create if missing
+    );
+
+    res.status(200).json({
+      message: `Service ${isActive ? "enabled" : "disabled"} successfully`,
+      config,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
