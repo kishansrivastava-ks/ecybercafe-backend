@@ -13,9 +13,9 @@ import path from "path";
 import fs from "fs";
 
 import sharp from "sharp";
+import { getServicePrice } from "../utils/pricing.js";
 
 // Define the cost for this specific service
-const PANCARD_COST = 125;
 
 export const applyForPanCard = async (req, res) => {
   try {
@@ -55,6 +55,8 @@ export const applyForPanCard = async (req, res) => {
     // ---------------------------------------------------------
     // 2. WALLET CHECK (New Logic)
     // ---------------------------------------------------------
+    // const PANCARD_COST = 125;
+    const PANCARD_COST = await getServicePrice("PanCard");
     const user = await User.findById(req.user.id);
 
     if (user.walletBalance < PANCARD_COST) {
@@ -489,7 +491,8 @@ export const applyForVoterCard = async (req, res) => {
       }
     }
 
-    const VOTER_COST_PER_UNIT = 30;
+    // const VOTER_COST_PER_UNIT = 30;
+    const VOTER_COST_PER_UNIT = await getServicePrice("VoterCard");
     const totalCount = applications.length;
     const totalCost = totalCount * VOTER_COST_PER_UNIT;
 
@@ -678,7 +681,8 @@ export const applyForRtps = async (req, res) => {
       }
     }
 
-    const RTPS_COST = 370;
+    // const RTPS_COST = 370;
+    const RTPS_COST = await getServicePrice("Rtps");
     const totalCount = applications.length;
     const totalCost = totalCount * RTPS_COST;
 
@@ -840,7 +844,8 @@ export const applyForLabourCard = async (req, res) => {
       }
     }
 
-    const LABOUR_COST = 370;
+    // const LABOUR_COST = 370;
+    const LABOUR_COST = await getServicePrice("LabourCard");
     const totalCount = applications.length;
     const totalCost = totalCount * LABOUR_COST;
 

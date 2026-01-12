@@ -1,6 +1,8 @@
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
 import Service from "../models/Service.js";
+import ServiceConfig from "../models/ServiceConfig.js";
+import { DEFAULT_PRICES, SERVICE_LABELS } from "../utils/pricing.js";
 
 /**
  * Create an admin user manually
@@ -104,5 +106,65 @@ export const getAllUsers = async (req, res) => {
   } catch (error) {
     console.error("Error fetching users:", error);
     res.status(500).json({ message: "Error retrieving users" });
+  }
+};
+
+/**
+ * @desc    Get all service prices
+ * @route   GET /api/admin/config/prices
+ */
+export const getAllServicePrices = async (req, res) => {
+  try {
+    // 1. List of all services we expect to exist
+    const knownServices = Object.keys(DEFAULT_PRICES);
+
+    // 2. Loop through each and ensure it exists in DB
+    // We use Promise.all to run these checks in parallel for speed
+    await Promise.all(
+      knownServices.map(async (type) => {
+        const exists = await ServiceConfig.exists({ serviceType: type });
+
+        if (!exists) {
+          await ServiceConfig.create({
+            serviceType: type,
+            price: DEFAULT_PRICES[type],
+            label: SERVICE_LABELS[type],
+          });
+        }
+      })
+    );
+
+    // 3. Now fetch the complete list from DB
+    const configs = await ServiceConfig.find({}).sort({ createdAt: 1 });
+
+    res.status(200).json(configs);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * @desc    Update a specific service price
+ * @route   PUT /api/admin/config/prices
+ */
+export const updateServicePrice = async (req, res) => {
+  try {
+    const { serviceType, newPrice } = req.body;
+
+    if (!serviceType || newPrice === undefined) {
+      return res
+        .status(400)
+        .json({ message: "Service Type and New Price are required" });
+    }
+
+    const config = await ServiceConfig.findOneAndUpdate(
+      { serviceType },
+      { price: newPrice },
+      { new: true, upsert: true } // Create if doesn't exist
+    );
+
+    res.status(200).json({ message: "Price updated successfully", config });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 };

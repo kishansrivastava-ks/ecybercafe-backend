@@ -2,7 +2,9 @@ import express from "express";
 import {
   addServiceComment,
   createAdmin,
+  getAllServicePrices,
   getAllUsers,
+  updateServicePrice,
   updateServiceStatus,
 } from "../controllers/adminController.js";
 import { isAdmin, protect } from "../middlewares/authMiddleware.js";
@@ -52,5 +54,9 @@ router.post(
   isAdmin,
   handleLabourCardAction
 );
+
+// --- Pricing Configuration Routes ---
+router.get("/config/prices", protect, isAdmin, getAllServicePrices);
+router.put("/config/prices", protect, isAdmin, updateServicePrice);
 
 export default router;
