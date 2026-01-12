@@ -2,6 +2,7 @@ import express from "express";
 import {
   addServiceComment,
   createAdmin,
+  deleteUser,
   getAllServicePrices,
   getAllUsers,
   toggleServiceStatus,
@@ -62,5 +63,8 @@ router.put("/config/prices", protect, isAdmin, updateServicePrice);
 
 // Toggle Service Route
 router.patch("/config/toggle", protect, isAdmin, toggleServiceStatus);
+
+// Delete user route (Admin only)
+router.delete("/users/:id", protect, isAdmin, deleteUser);
 
 export default router;

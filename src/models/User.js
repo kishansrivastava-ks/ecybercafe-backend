@@ -19,6 +19,8 @@ const userSchema = new mongoose.Schema(
       min: [0, "Wallet balance cannot be negative"],
     },
 
+    isDeleted: { type: Boolean, default: false },
+
     // Password reset
     passwordResetTokenHash: { type: String },
     passwordResetExpires: { type: Date },

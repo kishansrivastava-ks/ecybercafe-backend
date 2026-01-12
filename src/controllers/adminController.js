@@ -110,6 +110,39 @@ export const getAllUsers = async (req, res) => {
 };
 
 /**
+ * @desc    Soft Delete User (Ban/Deactivate)
+ * @route   DELETE /api/admin/users/:id
+ */
+export const deleteUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.role === "admin") {
+      return res.status(400).json({ message: "Cannot delete an Admin user" });
+    }
+
+    await User.findByIdAndUpdate(req.params.id, {
+      $set: {
+        isDeleted: true,
+      },
+    });
+
+    // Optional: Scramble sensitive info if privacy is a concern,
+    // but keep Name/Email so your reports still look correct.
+
+    // await user.save();
+
+    res.status(200).json({ message: "User has been deactivated successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
  * @desc    Get all service prices
  * @route   GET /api/admin/config/prices
  */

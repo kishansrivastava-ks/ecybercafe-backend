@@ -84,6 +84,12 @@ export const login = async (req, res) => {
     if (!user.isVerified)
       return res.status(403).json({ message: "Email not verified" });
 
+    if (user.isDeleted) {
+      return res
+        .status(403)
+        .json({ message: "This account has been deactivated." });
+    }
+
     const isMatch = await user.comparePassword(password);
     if (!isMatch)
       return res
