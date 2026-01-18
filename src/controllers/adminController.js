@@ -2,6 +2,7 @@ import User from "../models/User.js";
 import bcrypt from "bcrypt";
 import Service from "../models/Service.js";
 import ServiceConfig from "../models/ServiceConfig.js";
+import Transaction from "../models/Transaction.js";
 import { DEFAULT_PRICES, SERVICE_LABELS } from "../utils/pricing.js";
 
 /**
@@ -230,6 +231,108 @@ export const toggleServiceStatus = async (req, res) => {
       message: `Service ${isActive ? "enabled" : "disabled"} successfully`,
       config,
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * @desc    Approve a Pending Transaction manually
+ * @route   POST /api/admin/transactions/:transactionId/approve
+ */
+export const approvePendingTransaction = async (req, res) => {
+  try {
+    const { transactionId } = req.params;
+
+    const transaction = await Transaction.findById(transactionId);
+    if (!transaction) {
+      return res.status(404).json({ message: "Transaction not found" });
+    }
+
+    if (transaction.status === "SUCCESS") {
+      return res
+        .status(400)
+        .json({ message: "Transaction is already successful" });
+    }
+
+    // 1. Update Transaction Status
+    transaction.status = "SUCCESS";
+    transaction.description += " (Manually Approved by Admin)";
+    await transaction.save();
+
+    // 2. Update User Wallet
+    const user = await User.findById(transaction.user);
+    if (user) {
+      user.walletBalance += transaction.amount;
+      await user.save();
+    }
+
+    res.status(200).json({
+      message: "Transaction approved and wallet updated successfully",
+      transaction,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * @desc    Directly Credit User Wallet (Manual Top-up)
+ * @route   POST /api/admin/users/:userId/credit
+ */
+export const manualCreditWallet = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { amount, description } = req.body;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ message: "Valid amount is required" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // 1. Add Balance
+    user.walletBalance += Number(amount);
+    await user.save();
+
+    // 2. Create Success Transaction Record
+    await Transaction.create({
+      user: userId,
+      amount: amount,
+      type: "CREDIT",
+      category: "ADMIN_ADJUSTMENT",
+      description: description || "Admin Manual Credit",
+      status: "SUCCESS",
+    });
+
+    res.status(200).json({
+      message: `Wallet credited by ₹${amount}`,
+      newBalance: user.walletBalance,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
+ * @desc    Get All Transactions (with Filters)
+ * @route   GET /api/admin/transactions
+ */
+export const getAllTransactions = async (req, res) => {
+  try {
+    const { status, type } = req.query;
+    const query = {};
+    if (status) query.status = status;
+    if (type) query.type = type;
+
+    const transactions = await Transaction.find(query)
+      .populate("user", "name email mobile")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(transactions);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -1,10 +1,13 @@
 import express from "express";
 import {
   addServiceComment,
+  approvePendingTransaction,
   createAdmin,
   deleteUser,
   getAllServicePrices,
+  getAllTransactions,
   getAllUsers,
+  manualCreditWallet,
   toggleServiceStatus,
   updateServicePrice,
   updateServiceStatus,
@@ -66,5 +69,17 @@ router.patch("/config/toggle", protect, isAdmin, toggleServiceStatus);
 
 // Delete user route (Admin only)
 router.delete("/users/:id", protect, isAdmin, deleteUser);
+
+// Transaction Management
+router.get("/transactions", protect, isAdmin, getAllTransactions);
+router.post(
+  "/transactions/:transactionId/approve",
+  protect,
+  isAdmin,
+  approvePendingTransaction
+);
+
+// Manual Wallet Credit
+router.post("/users/:userId/credit", protect, isAdmin, manualCreditWallet);
 
 export default router;

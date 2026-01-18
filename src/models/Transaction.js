@@ -25,7 +25,7 @@ const transactionSchema = new mongoose.Schema(
     // Why did this transaction happen?
     category: {
       type: String,
-      enum: ["RECHARGE", "SERVICE_PAYMENT", "REFUND"],
+      enum: ["RECHARGE", "SERVICE_PAYMENT", "REFUND", "ADMIN_ADJUSTMENT"],
       required: true,
     },
 
