@@ -144,6 +144,29 @@ export const deleteUser = async (req, res) => {
 };
 
 /**
+ * @desc    Activate User (Undo Soft Delete)
+ * @route   PATCH /api/admin/users/:id/activate
+ */
+export const activateUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    await User.findByIdAndUpdate(req.params.id, {
+      $set: {
+        isDeleted: false,
+      },
+    });
+
+    res.status(200).json({ message: "User has been activated successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+/**
  * @desc    Get all service prices
  * @route   GET /api/admin/config/prices
  */
@@ -165,7 +188,7 @@ export const getAllServicePrices = async (req, res) => {
             label: SERVICE_LABELS[type],
           });
         }
-      })
+      }),
     );
 
     // 3. Now fetch the complete list from DB
@@ -194,7 +217,7 @@ export const updateServicePrice = async (req, res) => {
     const config = await ServiceConfig.findOneAndUpdate(
       { serviceType },
       { price: newPrice },
-      { new: true, upsert: true } // Create if doesn't exist
+      { new: true, upsert: true }, // Create if doesn't exist
     );
 
     res.status(200).json({ message: "Price updated successfully", config });
@@ -224,7 +247,7 @@ export const toggleServiceStatus = async (req, res) => {
     const config = await ServiceConfig.findOneAndUpdate(
       { serviceType },
       { isActive },
-      { new: true, upsert: true } // Create if missing
+      { new: true, upsert: true }, // Create if missing
     );
 
     res.status(200).json({

@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  activateUser,
   addServiceComment,
   approvePendingTransaction,
   createAdmin,
@@ -30,7 +31,7 @@ router.patch(
   "/service/:serviceId/status",
   protect,
   isAdmin,
-  updateServiceStatus
+  updateServiceStatus,
 );
 
 // Route to get all users (Admin only)
@@ -49,7 +50,7 @@ router.post(
   "/service/:serviceId/rtps/action",
   protect,
   isAdmin,
-  handleRtpsAction
+  handleRtpsAction,
 );
 
 // Admin: Perform Action on Labour Card
@@ -57,7 +58,7 @@ router.post(
   "/service/:serviceId/labour/action",
   protect,
   isAdmin,
-  handleLabourCardAction
+  handleLabourCardAction,
 );
 
 // --- Pricing Configuration Routes ---
@@ -70,13 +71,16 @@ router.patch("/config/toggle", protect, isAdmin, toggleServiceStatus);
 // Delete user route (Admin only)
 router.delete("/users/:id", protect, isAdmin, deleteUser);
 
+// Activate user route (Admin only)
+router.patch("/users/:id/activate", protect, isAdmin, activateUser);
+
 // Transaction Management
 router.get("/transactions", protect, isAdmin, getAllTransactions);
 router.post(
   "/transactions/:transactionId/approve",
   protect,
   isAdmin,
-  approvePendingTransaction
+  approvePendingTransaction,
 );
 
 // Manual Wallet Credit
