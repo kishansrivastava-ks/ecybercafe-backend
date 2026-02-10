@@ -8,6 +8,7 @@ const voterCardSchema = new mongoose.Schema(
     state: { type: String, required: true },
     name: { type: String, required: true },
     referenceNumber: { type: String, required: true },
+    statusRemark: { type: String, default: null },
 
     // Config
     price: { type: Number, default: 30 }, // Stored in schema as requested
@@ -24,7 +25,7 @@ const voterCardSchema = new mongoose.Schema(
       default: "pending",
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export default mongoose.model("VoterCard", voterCardSchema);

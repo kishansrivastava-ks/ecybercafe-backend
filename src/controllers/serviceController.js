@@ -74,13 +74,13 @@ export const applyForPanCard = async (req, res) => {
     if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
     const photoFileName = `photo_${Date.now()}${path.extname(
-      req.files.photo.name
+      req.files.photo.name,
     )}`;
     const signatureFileName = `signature_${Date.now()}${path.extname(
-      req.files.signature.name
+      req.files.signature.name,
     )}`;
     const aadharFileName = `aadhar_${Date.now()}${path.extname(
-      req.files.aadharFile.name
+      req.files.aadharFile.name,
     )}`;
     const photoPath = path.join(uploadDir, photoFileName);
     const signaturePath = path.join(uploadDir, signatureFileName);
@@ -282,7 +282,7 @@ export const uploadServiceDocument = async (req, res) => {
       process.cwd(),
       "uploads",
       "service-documents",
-      serviceId
+      serviceId,
     );
 
     // Create upload directory if it doesn't exist
@@ -361,7 +361,7 @@ export const downloadServiceDocument = async (req, res) => {
     res.set("Content-Type", mimeType);
     res.set(
       "Content-Disposition",
-      `attachment; filename="${document.originalName}"`
+      `attachment; filename="${document.originalName}"`,
     );
 
     // Send file for download
@@ -401,9 +401,8 @@ export const downloadProcessedImage = async (req, res) => {
     const { serviceId, type } = req.params; // type will be "photo" or "signature"
 
     // 1. Fetch the Service
-    const service = await Service.findById(serviceId).populate(
-      "specificService"
-    );
+    const service =
+      await Service.findById(serviceId).populate("specificService");
     console.log("Service fetched for processed image:", service);
     if (!service) {
       return res.status(404).json({ message: "Service not found" });
@@ -454,7 +453,7 @@ export const downloadProcessedImage = async (req, res) => {
     res.set("Content-Type", "image/jpeg");
     res.set(
       "Content-Disposition",
-      `attachment; filename="${type}_processed_${serviceId}.jpg"`
+      `attachment; filename="${type}_processed_${serviceId}.jpg"`,
     );
     res.send(processedImageBuffer);
   } catch (error) {
@@ -572,9 +571,8 @@ export const uploadVoterDoc = async (req, res) => {
     }
 
     // Find the Generic Service first
-    const service = await Service.findById(serviceId).populate(
-      "specificService"
-    );
+    const service =
+      await Service.findById(serviceId).populate("specificService");
     if (!service || service.serviceType !== "VoterCard") {
       return res.status(404).json({ message: "Voter Service not found." });
     }
@@ -593,7 +591,7 @@ export const uploadVoterDoc = async (req, res) => {
 
     // Generate filename
     const fileName = `voter_admin_${serviceId}_${Date.now()}${path.extname(
-      file.name
+      file.name,
     )}`;
     const filePath = path.join(uploadDir, fileName);
 
@@ -625,9 +623,8 @@ export const downloadVoterPdf = async (req, res) => {
   try {
     const { serviceId } = req.params;
 
-    const service = await Service.findById(serviceId).populate(
-      "specificService"
-    );
+    const service =
+      await Service.findById(serviceId).populate("specificService");
     if (!service || !service.specificService.adminFilePath) {
       return res.status(404).json({ message: "File not found." });
     }
@@ -643,7 +640,7 @@ export const downloadVoterPdf = async (req, res) => {
     if (fs.existsSync(filePath)) {
       res.download(
         filePath,
-        service.specificService.adminFileOriginalName || "voter_card.pdf"
+        service.specificService.adminFileOriginalName || "voter_card.pdf",
       );
     } else {
       res.status(404).json({ message: "File missing on server" });
@@ -653,6 +650,89 @@ export const downloadVoterPdf = async (req, res) => {
   }
 };
 
+// --- 3. REJECT VOTER CARD (Admin) ---
+export const rejectVoterCard = async (req, res) => {
+  try {
+    const { serviceId } = req.params;
+    const { remark } = req.body;
+
+    // 1. Find Generic Service
+    const service =
+      await Service.findById(serviceId).populate("specificService");
+    if (!service || service.serviceType !== "VoterCard") {
+      return res.status(404).json({ message: "Voter Card Service not found." });
+    }
+
+    // 2. Find Specific Record
+    const voterCard = await VoterCard.findById(service.specificService._id);
+    if (!voterCard) {
+      return res
+        .status(404)
+        .json({ message: "Specific Voter Card record not found." });
+    }
+
+    // 3. Prevent Double Rejection (Crucial for preventing infinite refunds)
+    if (voterCard.status === "rejected" || service.status === "rejected") {
+      return res
+        .status(400)
+        .json({ message: "Application is already rejected." });
+    }
+
+    // 4. Require a remark
+    if (!remark) {
+      return res
+        .status(400)
+        .json({ message: "A remark is required for rejection." });
+    }
+
+    // --- REFUND LOGIC START ---
+    // A. Get Real-time Price (or use the price stored in the specific schema if you saved it there)
+    // We use the current system price to ensure consistency
+    const refundAmount = await getServicePrice("VoterCard");
+
+    // B. Find User
+    const user = await User.findById(service.user);
+    if (user) {
+      // C. Credit Wallet
+      user.walletBalance += refundAmount;
+      await user.save();
+
+      // D. Create Transaction Log
+      await Transaction.create({
+        user: user._id,
+        amount: refundAmount,
+        type: "CREDIT",
+        category: "REFUND",
+        description: `Refund for Rejected Voter PDF (Ref: ${voterCard.referenceNumber})`,
+        status: "SUCCESS",
+        serviceId: service._id, // Link to original service
+      });
+    }
+    // --- REFUND LOGIC END ---
+
+    // 5. Update Status
+    voterCard.status = "rejected";
+    service.status = "rejected";
+
+    // If you don't have a statusRemark field in your VoterCard schema yet,
+    // you should add it, or just use generalRemarks if you prefer.
+    // Assuming you add 'statusRemark: String' to VoterCard schema:
+    voterCard.statusRemark = remark;
+
+    await voterCard.save();
+    await service.save();
+
+    res.status(200).json({
+      message:
+        "Voter Card application rejected and refund processed successfully",
+      status: voterCard.status,
+      data: voterCard,
+    });
+  } catch (error) {
+    console.error("Voter Reject Error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
 // ---------------------------------------------
 // FOR RTPS SERVICE
 // ---------------------------------------------
@@ -756,9 +836,8 @@ export const handleRtpsAction = async (req, res) => {
     // remark: String
 
     // Find Generic Service
-    const service = await Service.findById(serviceId).populate(
-      "specificService"
-    );
+    const service =
+      await Service.findById(serviceId).populate("specificService");
     if (!service || service.serviceType !== "Rtps") {
       return res.status(404).json({ message: "RTPS Service not found." });
     }
@@ -918,9 +997,8 @@ export const handleLabourCardAction = async (req, res) => {
     const { action, remark } = req.body;
 
     // Find Generic Service
-    const service = await Service.findById(serviceId).populate(
-      "specificService"
-    );
+    const service =
+      await Service.findById(serviceId).populate("specificService");
     if (!service || service.serviceType !== "LabourCard") {
       return res
         .status(404)
@@ -978,7 +1056,7 @@ export const handleLabourCardAction = async (req, res) => {
 export const getServicePrices = async (req, res) => {
   try {
     const prices = await ServiceConfig.find({}).select(
-      "serviceType price label isActive maintenanceMessage"
+      "serviceType price label isActive maintenanceMessage",
     );
     res.status(200).json(prices);
   } catch (error) {

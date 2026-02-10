@@ -20,6 +20,7 @@ import {
   getServicesByType,
   handleLabourCardAction,
   handleRtpsAction,
+  rejectVoterCard,
 } from "../controllers/serviceController.js";
 
 const router = express.Router();
@@ -59,6 +60,14 @@ router.post(
   protect,
   isAdmin,
   handleLabourCardAction,
+);
+
+// Admin: Reject Voter PDF
+router.post(
+  "/service/:serviceId/voter/reject",
+  protect,
+  isAdmin,
+  rejectVoterCard,
 );
 
 // --- Pricing Configuration Routes ---
